@@ -6,7 +6,7 @@
 sem_t mutex;
 
 void* thread(void* filename) {
-    // lock file 
+    // lock sem
     sem_wait(&mutex);
     FILE* f = fopen((char*)filename, "r");
 
@@ -16,7 +16,7 @@ void* thread(void* filename) {
     FILE* p = popen("python3 pymain.py", "w");
     sleep(3);
 
-    // release file
+    // release sem
     fclose(f);
     pclose(p);
     sem_post(&mutex);
@@ -29,24 +29,29 @@ void* thread(void* filename) {
 
 
 int main() {
+    // no stdout buffer
     setbuf(stdout, NULL);
+
     sem_init(&mutex, 1, 1);
     pthread_t th;
 
     char filename[10] = ".flag/new";
 
+    // start thread: it immediately locks the semaphore
     pthread_create(&th, NULL, thread, filename);
-
+    
     printf("attempt to open file in main:\n");
     sem_wait(&mutex);
     FILE* f = fopen(filename, "r");
     printf("opened\n");
 
+    // print all lines in file
     char line[100];
     while (fgets(line, sizeof(line), f) != NULL) {
         printf("%s", line);
     }
 
+    // unlock sem
     sem_post(&mutex);
     fclose(f);
 
